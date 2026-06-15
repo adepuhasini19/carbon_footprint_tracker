@@ -292,33 +292,32 @@
                 });
 
                 if (!response.ok) throw new Error('Data processing engine malfunction.');
-                const data = await response.json();
+                const responseData = await response.json();
 
-                // --- SMART KEY PARSING SAFETY LAYER ---
-                // Grabs total score safely regardless of exact key naming casing
-                const totalDaily = data.totalDailyKgCo2e ?? data.totalEmissions ?? data.total ?? 0;
+                // --- UNPACK NESTED SUCCESS DATA WRAPPER OBJECT ---
+                const calculatedMetrics = responseData.data || responseData;
+
+                // --- SMART KEY PARSING SAFETY LAYERS ---
+                const totalDaily = calculatedMetrics.totalDailyKgCo2e ?? calculatedMetrics.totalEmissions ?? calculatedMetrics.total ?? 0;
+                const breakdown = calculatedMetrics.breakdown ?? calculatedMetrics.results ?? calculatedMetrics;
                 
-                // Grabs the breakdown object safely
-                const breakdown = data.breakdown ?? data.results ?? data;
-                
-                // Maps individual parameters safely by checking multiple typical fallback keys
                 const transport = breakdown.transport ?? breakdown.transportImpact ?? breakdown.commute ?? 0;
                 const diet = breakdown.diet ?? breakdown.dietaryFootprint ?? breakdown.food ?? 0;
                 const housing = breakdown.housing ?? breakdown.housingUtilities ?? breakdown.electricity ?? 0;
 
-                // Inject metrics into UI smoothly safely using our validated numerical variables
+                // Inject metrics into UI Smoothly
                 document.getElementById('lblTotal').innerText = Number(totalDaily).toFixed(2);
                 document.getElementById('lblTransport').innerText = Number(transport).toFixed(2) + ' kg';
                 document.getElementById('lblDiet').innerText = Number(diet).toFixed(2) + ' kg';
                 document.getElementById('lblHousing').innerText = Number(housing).toFixed(2) + ' kg';
 
-                // Change status visual design on completion
+                // Light up dashboard layout boundaries
                 const targetCard = document.getElementById('analyticsCard');
                 if (targetCard) {
                     targetCard.classList.add('border-emerald-500/30', 'shadow-[0_0_30px_rgba(16,185,129,0.05)]');
                 }
 
-                // Awareness Text Injector Loop
+                // Awareness Banner Feedback Rules
                 const txtLabel = document.getElementById('lblInsight');
                 if (txtLabel) {
                     if (totalDaily > 12) {
@@ -329,7 +328,7 @@
                 }
 
             } catch (err) {
-                alert('Connection complete: ' + err.message);
+                alert('Connection failure: ' + err.message);
             }
         });
     </script>
