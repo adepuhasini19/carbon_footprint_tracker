@@ -1,17 +1,28 @@
 {
   "version": 2,
   "cleanUrls": true,
+  "builds": [
+    {
+      "src": "src/app.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    }
+  ],
   "routes": [
     {
       "src": "/api/v1/footprint/calculate",
       "dest": "src/app.ts"
     },
     {
-      "handle": "filesystem"
+      "src": "/",
+      "dest": "index.html"
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "index.html"
     }
   ]
 }
