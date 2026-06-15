@@ -294,30 +294,35 @@
                 if (!response.ok) throw new Error('Data processing engine malfunction.');
                 const responseData = await response.json();
 
-                // --- UNPACK NESTED SUCCESS DATA WRAPPER OBJECT ---
+                // Unpack backend "data" wrapper layer safely
                 const calculatedMetrics = responseData.data || responseData;
 
-                // --- SMART KEY PARSING SAFETY LAYERS ---
-                const totalDaily = calculatedMetrics.totalDailyKgCo2e ?? calculatedMetrics.totalEmissions ?? calculatedMetrics.total ?? 0;
+                // Parse breakdown keys safely
                 const breakdown = calculatedMetrics.breakdown ?? calculatedMetrics.results ?? calculatedMetrics;
                 
                 const transport = breakdown.transport ?? breakdown.transportImpact ?? breakdown.commute ?? 0;
                 const diet = breakdown.diet ?? breakdown.dietaryFootprint ?? breakdown.food ?? 0;
                 const housing = breakdown.housing ?? breakdown.housingUtilities ?? breakdown.electricity ?? 0;
 
-                // Inject metrics into UI Smoothly
+                // MATH SAFETY FALLBACK LAYER: Calculate sum directly from live metrics to ensure the display updates perfectly
+                const totalDaily = calculatedMetrics.totalDailyKgCo2e ?? 
+                                   calculatedMetrics.totalEmissions ?? 
+                                   calculatedMetrics.total ?? 
+                                   (Number(transport) + Number(diet) + Number(housing));
+
+                // Inject numerical strings into target dashboard blocks
                 document.getElementById('lblTotal').innerText = Number(totalDaily).toFixed(2);
                 document.getElementById('lblTransport').innerText = Number(transport).toFixed(2) + ' kg';
                 document.getElementById('lblDiet').innerText = Number(diet).toFixed(2) + ' kg';
                 document.getElementById('lblHousing').innerText = Number(housing).toFixed(2) + ' kg';
 
-                // Light up dashboard layout boundaries
+                // Light up the status card dashboard layout boundary borders
                 const targetCard = document.getElementById('analyticsCard');
                 if (targetCard) {
                     targetCard.classList.add('border-emerald-500/30', 'shadow-[0_0_30px_rgba(16,185,129,0.05)]');
                 }
 
-                // Awareness Banner Feedback Rules
+                // Inject awareness tips contextual to score ranges
                 const txtLabel = document.getElementById('lblInsight');
                 if (txtLabel) {
                     if (totalDaily > 12) {

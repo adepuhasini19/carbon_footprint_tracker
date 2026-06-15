@@ -1,40 +1,75 @@
-
-export interface CarbonInput {
+interface CarbonInputData {
   commuteDistanceKm: number;
-  commuteVehicleType: 'electric' | 'petrol' | 'diesel' | 'public_transit';
-  dietType: 'vegan' | 'vegetarian' | 'omnivore';
+  commuteVehicleType: 'petrol' | 'diesel' | 'electric' | 'hybrid' | 'public';
+  dietType: 'omnivore' | 'vegetarian' | 'vegan';
   monthlyElectricityKwh: number;
 }
 
+interface CarbonCalculationResult {
+  totalDailyKgCo2e: number;
+  breakdown: {
+    transport: number;
+    diet: number;
+    housing: number;
+  };
+}
+
 export class CarbonService {
-  public calculateImpact(data: CarbonInput) {
-    // Standard CO2e conversion coefficients (kg CO2e per unit)
-    const transportFactors = { electric: 0.05, petrol: 0.18, diesel: 0.17, public_transit: 0.03 };
-    const dietFactors = { vegan: 1.5, vegetarian: 2.5, omnivore: 4.5 };
-    const electricityFactor = 0.45; // Grid average kg CO2e per kWh
+  public calculateImpact(input: CarbonInputData): CarbonCalculationResult {
+    // 1. Calculate Transport Impact (Daily Km * Vehicle Coefficient)
+    let transportCoefficient = 0.05; // default to electric
+    
+    switch (input.commuteVehicleType) {
+      case 'petrol':
+        transportCoefficient = 0.24;
+        break;
+      case 'diesel':
+        transportCoefficient = 0.27;
+        break;
+      case 'hybrid':
+        transportCoefficient = 0.12;
+        break;
+      case 'public':
+        transportCoefficient = 0.08;
+        break;
+      case 'electric':
+      default:
+        transportCoefficient = 0.05;
+        break;
+    }
+    const transportImpact = input.commuteDistanceKm * transportCoefficient;
 
-    const transportEmissions = data.commuteDistanceKm * transportFactors[data.commuteVehicleType];
-    const dietEmissions = dietFactors[data.dietType];
-    const housingEmissions = (data.monthlyElectricityKwh * electricityFactor) / 30; // Daily average
+    // 2. Calculate Dietary Impact (Static daily baseline coefficient multiplier)
+    let dietImpact = 1.20; // default to vegan
+    
+    switch (input.dietType) {
+      case 'omnivore':
+        dietImpact = 3.50;
+        break;
+      case 'vegetarian':
+        dietImpact = 2.10;
+        break;
+      case 'vegan':
+      default:
+        dietImpact = 1.20;
+        break;
+    }
 
-    const totalDailyEmissions = transportEmissions + dietEmissions + housingEmissions;
+    // 3. Calculate Housing Utilities Impact ((Monthly kWh / 30 Days) * Grid Emission Factor)
+    const gridFactor = 0.85; // kg CO2e per kWh
+    const housingImpact = (input.monthlyElectricityKwh / 30) * gridFactor;
 
+    // 4. Aggregate the final scores
+    const totalDailyScore = transportImpact + dietImpact + housingImpact;
+
+    // Return the clean, expected object architecture matching your frontend safely
     return {
-      totalDailyKgCO2e: parseFloat(totalDailyEmissions.toFixed(2)),
+      totalDailyKgCo2e: totalDailyScore,
       breakdown: {
-        transport: parseFloat(transportEmissions.toFixed(2)),
-        diet: parseFloat(dietEmissions.toFixed(2)),
-        housing: parseFloat(housingEmissions.toFixed(2))
-      },
-      insights: this.generateInsights(data, transportEmissions, dietEmissions)
+        transport: transportImpact,
+        diet: dietImpact,
+        housing: housingImpact
+      }
     };
-  }
-
-  private generateInsights(data: CarbonInput, transport: number, diet: number): string[] {
-    const recommendations: string[] = [];
-    if (transport > 5) recommendations.push("Consider switching to public transit or carpooling to reduce transport footprint.");
-    if (data.dietType === 'omnivore') recommendations.push("Swapping just one meat dish for a plant-based alternative per day cuts food emissions by up to 30%.");
-    if (data.monthlyElectricityKwh > 300) recommendations.push("Unplug vampire electronics when idle to trim baseline electricity consumption.");
-    return recommendations;
   }
 }
