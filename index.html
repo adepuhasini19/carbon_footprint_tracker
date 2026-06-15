@@ -122,7 +122,7 @@
                     <div class="bg-slate-950/60 rounded-2xl p-5 border border-slate-800/60 text-center space-y-1 mb-5 shadow-inner">
                         <p class="text-[9px] text-slate-500 font-extrabold uppercase tracking-widest">Total Aggregated Daily Footprint</p>
                         <div class="text-4xl sm:text-5xl font-black text-white tracking-tight">
-                            <span id="lblTotal">0.00</span><span class="text-xs font-semibold text-slate-500 ml-1.5">mg CO₂e / day</span>
+                            <span id="lblTotal">0.00</span><span class="text-xs font-semibold text-slate-500 ml-1.5">kg CO₂e / day</span>
                         </div>
                     </div>
 
@@ -168,15 +168,15 @@
                     <div class="text-emerald-400 text-2xl"><i class="fa-solid fa-temperature-arrow-up"></i></div>
                     <h4 class="text-lg font-bold text-white">The Greenhouse Effect</h4>
                     <p class="text-xs text-slate-400 leading-relaxed">
-                        Greenhouse gases ($CO_2$, $CH_4$, $N_2O$) envelope the atmospheric crust, acting as a structural solar trap. As individual energy generation and internal combustion processes intensify, industrial accumulation accelerates thermal atmospheric changes, leading to long-term climate variance.
+                        Greenhouse gases (CO₂, CH₄, N₂O) envelope the atmospheric crust, acting as a structural solar trap. As individual energy generation and internal combustion processes intensify, industrial accumulation accelerates thermal atmospheric changes, leading to long-term climate variance.
                     </p>
                 </div>
                 
                 <div class="bg-slate-900/40 border border-slate-800/80 p-6 rounded-2xl space-y-4">
                     <div class="text-teal-400 text-2xl"><i class="fa-solid fa-calculator"></i></div>
-                    <h4 class="text-lg font-bold text-white">Carbon Equivalencies ($CO_2e$)</h4>
+                    <h4 class="text-lg font-bold text-white">Carbon Equivalencies (CO₂e)</h4>
                     <p class="text-xs text-slate-400 leading-relaxed">
-                        Different greenhouse metrics have distinct Global Warming Potential values. To streamline international environmental telemetry data, global systems convert all variable gases into a single benchmark coefficient known as Carbon Dioxide Equivalent ($CO_2e$).
+                        Different greenhouse metrics have distinct Global Warming Potential values. To streamline international environmental telemetry data, global systems convert all variable gases into a single benchmark coefficient known as Carbon Dioxide Equivalent (CO₂e).
                     </p>
                 </div>
 
@@ -196,7 +196,7 @@
                         <tr>
                             <th class="p-3">Category Group</th>
                             <th class="p-3">Input Parameter Key</th>
-                            <th class="p-3">Underlying Emission Coeffient Constant</th>
+                            <th class="p-3">Underlying Emission Coefficient Constant</th>
                             <th class="p-3">Calculation Logic Metric Basis</th>
                         </tr>
                     </thead>
@@ -291,23 +291,41 @@
                     body: JSON.stringify(payload)
                 });
 
-                if (!response.ok) throw new Error('Engine processing fault.');
+                if (!response.ok) throw new Error('Data processing engine malfunction.');
                 const data = await response.json();
 
-                // Inject metrics into UI
-                document.getElementById('lblTotal').innerText = data.totalDailyKgCo2e.toFixed(2);
-                document.getElementById('lblTransport').innerText = data.breakdown.transport.toFixed(2) + ' kg';
-                document.getElementById('lblDiet').innerText = data.breakdown.diet.toFixed(2) + ' kg';
-                document.getElementById('lblHousing').innerText = data.breakdown.housing.toFixed(2) + ' kg';
+                // --- SMART KEY PARSING SAFETY LAYER ---
+                // Grabs total score safely regardless of exact key naming casing
+                const totalDaily = data.totalDailyKgCo2e ?? data.totalEmissions ?? data.total ?? 0;
+                
+                // Grabs the breakdown object safely
+                const breakdown = data.breakdown ?? data.results ?? data;
+                
+                // Maps individual parameters safely by checking multiple typical fallback keys
+                const transport = breakdown.transport ?? breakdown.transportImpact ?? breakdown.commute ?? 0;
+                const diet = breakdown.diet ?? breakdown.dietaryFootprint ?? breakdown.food ?? 0;
+                const housing = breakdown.housing ?? breakdown.housingUtilities ?? breakdown.electricity ?? 0;
 
+                // Inject metrics into UI smoothly safely using our validated numerical variables
+                document.getElementById('lblTotal').innerText = Number(totalDaily).toFixed(2);
+                document.getElementById('lblTransport').innerText = Number(transport).toFixed(2) + ' kg';
+                document.getElementById('lblDiet').innerText = Number(diet).toFixed(2) + ' kg';
+                document.getElementById('lblHousing').innerText = Number(housing).toFixed(2) + ' kg';
+
+                // Change status visual design on completion
                 const targetCard = document.getElementById('analyticsCard');
-                targetCard.classList.add('border-emerald-500/30', 'shadow-[0_0_30px_rgba(16,185,129,0.05)]');
+                if (targetCard) {
+                    targetCard.classList.add('border-emerald-500/30', 'shadow-[0_0_30px_rgba(16,185,129,0.05)]');
+                }
 
+                // Awareness Text Injector Loop
                 const txtLabel = document.getElementById('lblInsight');
-                if (data.totalDailyKgCo2e > 12) {
-                    txtLabel.innerHTML = "⚠️ <strong class='text-emerald-400'>Emissions Threshold Warning:</strong> Your current score tracks above targeted green baselines. Mitigate this profile right now by introducing transit share metrics or lowering electrical home heating/cooling points.";
-                } else {
-                    txtLabel.innerHTML = "✨ <strong class='text-emerald-400'>Excellent Ecological Standing:</strong> Your metrics reflect highly climate-conscious, optimal lifestyle routines. Maintaining minor transit distances and green resource habits serves as a stellar blueprint for sustainability targets!";
+                if (txtLabel) {
+                    if (totalDaily > 12) {
+                        txtLabel.innerHTML = "⚠️ <strong class='text-emerald-400'>Emissions Threshold Warning:</strong> Your current score tracks above targeted green baselines. Mitigate this profile right now by introducing transit share metrics or lowering electrical home heating/cooling points.";
+                    } else {
+                        txtLabel.innerHTML = "✨ <strong class='text-emerald-400'>Excellent Ecological Standing:</strong> Your metrics reflect highly climate-conscious, optimal lifestyle routines. Maintaining minor transit distances and green resource habits serves as a stellar blueprint for sustainability targets!";
+                    }
                 }
 
             } catch (err) {
